@@ -1,0 +1,14 @@
+{
+  "name": "eb-node-dynamodb-app",
+  "version": "1.0.0",
+  "description": "Node.js App for AWS Elastic Beanstalk Lab",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "express": "^4.18.2",
+    "uuid": "^9.0.1"
+  }
+}
