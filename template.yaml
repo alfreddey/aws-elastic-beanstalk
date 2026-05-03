@@ -22,10 +22,15 @@ Parameters:
     Type: String
     Default: t3.micro
 
+  CNAMEPrefix:
+    Type: String
+    Default: alfred-eb-lab-app
+    Description: Prefix for the Elastic Beanstalk URL (Must be unique across AWS)
+
   SolutionStackName:
     Type: String
-    Default: 64bit Amazon Linux 2 v5.8.4 running Node.js 18
-    Description: Set to "64bit Amazon Linux 2 v3.5.7 running Corretto 17" if deploying Java.
+    Default: '64bit Amazon Linux 2023 v6.10.1 running Node.js 20'
+    Description: Note - if this specific version is outdated in your region, update it with the exact string from the Beanstalk Console.
 
 Resources:
 
@@ -109,6 +114,7 @@ Resources:
     Properties:
       EnvironmentName: !Ref EnvironmentName
       ApplicationName: !Ref EBApplication
+      CNAMEPrefix: !Ref CNAMEPrefix
       SolutionStackName: !Ref SolutionStackName
       VersionLabel: !Ref EBAppVersion
 
@@ -143,7 +149,7 @@ Resources:
 Outputs:
   AppURL:
     Description: Elastic Beanstalk URL
-    Value: !GetAtt EBEnvironment.EndpointURL
+    Value: !Sub "http://${CNAMEPrefix}.${AWS::Region}.elasticbeanstalk.com"
   TableName:
     Description: DynamoDB Table Name for External Integration
     Value: !Ref AppDynamoDBTable
