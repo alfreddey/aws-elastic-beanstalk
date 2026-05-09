@@ -1,155 +1,73 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Elastic Beanstalk Web App with S3 Source Bundle, CI/CD Ready + External DynamoDB (AmaliTech Lab)
-
-Parameters:
-  ApplicationName:
-    Type: String
-    Default: LabElasticApp
-
-  EnvironmentName:
-    Type: String
-    Default: LabElasticEnv
-
-  S3Bucket:
-    Type: String
-    Description: S3 bucket where application bundle is stored (to be uploaded by GitHub Actions)
-
-  S3Key:
-    Type: String
-    Description: Path to ZIP file in S3 (e.g., app-v1.zip)
-
-  InstanceType:
-    Type: String
-    Default: t3.micro
-
-  CNAMEPrefix:
-    Type: String
-    Default: alfred-eb-lab-app
-    Description: Prefix for the Elastic Beanstalk URL (Must be unique across AWS)
-
-  SolutionStackName:
-    Type: String
-    Default: '64bit Amazon Linux 2023 v6.10.1 running Node.js 20'
-    Description: Note - if this specific version is outdated in your region, update it with the exact string from the Beanstalk Console.
+Description: Elastic Beanstalk Web App with S3 Source Bundle, CI/CD Ready
 
 Resources:
-
-  # -------------------------------
-  # Optional External Data Service (DynamoDB)
-  # -------------------------------
-  AppDynamoDBTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${AWS::StackName}-AppTable"
-      AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
-      KeySchema:
-        - AttributeName: id
-          KeyType: HASH
-      BillingMode: PAY_PER_REQUEST
-
-  # -------------------------------
-  # Elastic Beanstalk Application
-  # -------------------------------
-  EBApplication:
+  myApplication:
     Type: AWS::ElasticBeanstalk::Application
     Properties:
-      ApplicationName: !Ref ApplicationName
-      Description: Elastic Beanstalk App for CI/CD
+      ApplicationName: "NodeJsApp"
+      Description: AWS Elastic Beanstalk NodeJs Application
 
-  # -------------------------------
-  # Application Version (S3 Source)
-  # -------------------------------
-  EBAppVersion:
+  myApplicationVersion:
     Type: AWS::ElasticBeanstalk::ApplicationVersion
     Properties:
-      ApplicationName: !Ref EBApplication
+      ApplicationName: myApplication
+      Description: AWS ElasticBeanstalk NodeJs Application Version
       SourceBundle:
-        S3Bucket: !Ref S3Bucket
-        S3Key: !Ref S3Key
+        S3Bucket: "elastic-beanstalk-lab-253775151832-eu-north-1-an" # TODO: Replace with parameter store key that references this value
+        S3Key: nodejs-app.zip
 
-  # -------------------------------
-  # IAM Role for EC2 Instances
-  # -------------------------------
-  EC2Role:
-    Type: AWS::IAM::Role
+  myConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
     Properties:
-      RoleName: !Sub "${AWS::StackName}-EB-EC2-Role"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
-        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
-      Policies:
-        - PolicyName: DynamoDBAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:PutItem
-                  - dynamodb:GetItem
-                  - dynamodb:Scan
-                  - dynamodb:Query
-                Resource: !GetAtt AppDynamoDBTable.Arn
-
-  InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles:
-        - !Ref EC2Role
-
-  # -------------------------------
-  # Elastic Beanstalk Environment
-  # -------------------------------
-  EBEnvironment:
-    Type: AWS::ElasticBeanstalk::Environment
-    Properties:
-      EnvironmentName: !Ref EnvironmentName
-      ApplicationName: !Ref EBApplication
-      CNAMEPrefix: !Ref CNAMEPrefix
-      SolutionStackName: !Ref SolutionStackName
-      VersionLabel: !Ref EBAppVersion
-
+      ApplicationName: myApplication
+      Description: AWS ElasticBeanstalk NodeJs Configuration Template
       OptionSettings:
-        # Instance config
-        - Namespace: aws:autoscaling:launchconfiguration
-          OptionName: InstanceType
-          Value: !Ref InstanceType
-
-        - Namespace: aws:autoscaling:launchconfiguration
-          OptionName: IamInstanceProfile
-          Value: !Ref InstanceProfile
-
-        # Make app public (LoadBalanced)
+        - Namespace: aws:autoscaling:asg
+          OptionName: MinSize
+          Value: '1'
+        - Namespace: aws:autoscaling:asg
+          OptionName: MaxSize
+          Value: '4'
         - Namespace: aws:elasticbeanstalk:environment
           OptionName: EnvironmentType
           Value: LoadBalanced
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: IamInstanceProfile
+          Value: !Ref MyInstanceProfile        
+      SolutionStackName: 64bit Amazon Linux 2023 running Node.js 20
 
-        # Environment variables (for external services)
-        - Namespace: aws:elasticbeanstalk:application:environment
-          OptionName: NODE_ENV
-          Value: production
+  myEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      ApplicationName:
+        Ref: myApplication
+      Description: AWS ElasticBeanstalk Sample Environment
+      TemplateName:
+        Ref: myConfigurationTemplate
+      VersionLabel:
+        Ref: myApplicationVersion
 
-        - Namespace: aws:elasticbeanstalk:application:environment
-          OptionName: DYNAMODB_TABLE_NAME
-          Value: !Ref AppDynamoDBTable
-          
-        - Namespace: aws:elasticbeanstalk:application:environment
-          OptionName: AWS_REGION
-          Value: !Ref AWS::Region
+  MyInstanceRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: Beanstalk EC2 role
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
 
-Outputs:
-  AppURL:
-    Description: Elastic Beanstalk URL
-    Value: !Sub "http://${CNAMEPrefix}.${AWS::Region}.elasticbeanstalk.com"
-  TableName:
-    Description: DynamoDB Table Name for External Integration
-    Value: !Ref AppDynamoDBTable
+  MyInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      Roles:
+        - !Ref MyInstanceRole
