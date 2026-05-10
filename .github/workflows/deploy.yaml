@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: eu-north-1
   EB_APP_NAME: NodeJsApp
-  EB_ENV_NAME: NodeJsEnv
+  EB_ENV_NAME: aws-e-myEn-ty9wdpVn0l2z
   S3_BUCKET_NAME: elastic-beanstalk-lab-253775151832-eu-north-1-an
 
 jobs:
