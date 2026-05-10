@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 // Elastic Beanstalk automatically sets the PORT environment variable (usually to 8080)
-const port = process.env.PORT || 8080; 
+const port = process.env.PORT || 8080;
 
 // Initialize DynamoDB Client
 // The AWS_REGION is set by our Elastic Beanstalk environment variables
@@ -14,7 +14,7 @@ const tableName = process.env.DYNAMODB_TABLE_NAME;
 app.get('/', async (req, res) => {
     try {
         let dbStatus = "DynamoDB is NOT configured. DYNAMODB_TABLE_NAME environment variable is missing.";
-        
+
         if (tableName) {
             // Write a dummy record to the DynamoDB table to demonstrate integration
             const id = uuidv4();
@@ -27,7 +27,7 @@ app.get('/', async (req, res) => {
                 }
             });
             await client.send(putCommand);
-            
+
             // Read records back to confirm it worked
             const scanCommand = new ScanCommand({
                 TableName: tableName,
