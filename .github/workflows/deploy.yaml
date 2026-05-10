@@ -15,42 +15,46 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v6
+      - name: Checkout Code
+        uses: actions/checkout@v6
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '24'
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
-    - name: Install Dependencies
-      run: npm ci
+      - name: Install Dependencies
+        run: npm ci
 
-    - name: Create ZIP Bundle
-      # Package the app into a ZIP file, excluding git and github action files
-      run: zip -r deploy.zip . -x "*.git*" -x ".github/*"
+      - name: Create ZIP Bundle
+        # Package the app into a ZIP file, excluding git and github action files
+        run: zip -r deploy.zip . -x "*.git*" -x ".github/*"
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Upload to S3
-      # Upload the created zip bundle to the specified S3 bucket
-      run: aws s3 cp deploy.zip s3://${{ env.S3_BUCKET_NAME }}/deploy-${{ github.sha }}.zip
+      - name: Upload to S3
+        # Upload the created zip bundle to the specified S3 bucket
+        run: aws s3 cp deploy.zip s3://${{ env.S3_BUCKET_NAME }}/deploy-${{ github.sha }}.zip
 
-    - name: Create New Elastic Beanstalk Version
-      run: |
-        aws elasticbeanstalk create-application-version \
-          --application-name ${{ env.EB_APP_NAME }} \
-          --version-label ${{ github.sha }} \
-          --source-bundle S3Bucket=${{ env.S3_BUCKET_NAME }},S3Key=deploy-${{ github.sha }}.zip \
-          --description "Commit SHA: ${{ github.sha }}"
+      - name: Create New Elastic Beanstalk Version
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APP_NAME }} \
+            --version-label ${{ github.sha }} \
+            --source-bundle S3Bucket=${{ env.S3_BUCKET_NAME }},S3Key=deploy-${{ github.sha }}.zip \
+            --description "Commit SHA: ${{ github.sha }}"
 
-    - name: Update Elastic Beanstalk Environment
-      run: |
-        aws elasticbeanstalk update-environment \
-          --environment-name ${{ env.EB_ENV_NAME }} \
-          --version-label ${{ github.sha }}
+      - name: Update Elastic Beanstalk Environment
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --version-label ${{ github.sha }}
