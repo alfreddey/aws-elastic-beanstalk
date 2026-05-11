@@ -8,8 +8,8 @@ const port = process.env.PORT || 8080;
 
 // Initialize DynamoDB Client
 // The AWS_REGION is set by our Elastic Beanstalk environment variables
-const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-const tableName = process.env.DYNAMODB_TABLE_NAME;
+const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'eu-north-1' });
+const tableName = process.env.DYNAMODB_TABLE_NAME || 'NodeJsAppTable';
 
 app.get('/', async (req, res) => {
     try {

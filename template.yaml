@@ -36,7 +36,10 @@ Resources:
           Value: LoadBalanced
         - Namespace: aws:autoscaling:launchconfiguration
           OptionName: IamInstanceProfile
-          Value: !Ref MyInstanceProfile        
+          Value: !Ref MyInstanceProfile
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: DYNAMODB_TABLE_NAME
+          Value: !Ref MyDynamoDBTable
       SolutionStackName: 64bit Amazon Linux 2023 v6.10.3 running Node.js 24
 
   myEnvironment:
@@ -44,15 +47,27 @@ Resources:
     Properties:
       ApplicationName:
         Ref: myApplication
-      Description: AWS ElasticBeanstalk Sample Environment
+      Description: AWS ElasticBeanstalk NodeJs Environment
       TemplateName:
         Ref: myConfigurationTemplate
       VersionLabel:
         Ref: myApplicationVersion
 
+  MyDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "NodeJsAppTable"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
   MyInstanceRole:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -63,10 +78,20 @@ Resources:
             Action:
               - sts:AssumeRole
       Description: Beanstalk EC2 role
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
         - arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker
         - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                Resource: !GetAtt MyDynamoDBTable.Arn
 
   MyInstanceProfile:
     Type: AWS::IAM::InstanceProfile
