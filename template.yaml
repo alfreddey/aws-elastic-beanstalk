@@ -15,7 +15,7 @@ Resources:
         Ref: myApplication
       Description: AWS ElasticBeanstalk NodeJs Application Version
       SourceBundle:
-        S3Bucket: "elastic-beanstalk-lab-253775151832-eu-north-1-an" # TODO: Replace with parameter store key that references this value
+        S3Bucket: "elastic-beanstalk-lab-253775151832-eu-north-1-an"
         S3Key: nodejs-app.zip
 
   myConfigurationTemplate:
